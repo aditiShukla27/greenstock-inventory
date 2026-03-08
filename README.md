@@ -143,4 +143,4 @@ greentech-inventory/
 ---
 
 ## Video
-[Add your YouTube/Vimeo link here before submitting]
+(https://youtu.be/SVyBR5259cU)
