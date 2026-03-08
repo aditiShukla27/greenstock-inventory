@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+{% block title %}{{ action }} Item{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:680px;">
+
+  <div class="flex items-center gap-3 mb-4" style="margin-bottom:1.75rem;">
+    <a href="/" class="btn btn-secondary btn-sm">← Back</a>
+    <div>
+      <h1 class="font-serif" style="font-size:1.75rem; color:var(--forest);">
+        {{ '🌱 Add New Item' if action == 'Create' else '✏️ Edit Item' }}
+      </h1>
+      <p class="text-muted mt-1">{{ 'Register a new asset in your sustainable inventory.' if action == 'Create' else 'Update the details for this item.' }}</p>
+    </div>
+  </div>
+
+  {% if errors %}
+  <div class="alert-errors mb-4">
+    <strong style="color:var(--red);">Please fix the following:</strong>
+    <ul>
+      {% for error in errors %}
+      <li>{{ error }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="POST">
+
+      <!-- Name + AI auto-categorize -->
+      <div class="form-group">
+        <label for="name">Item Name *</label>
+        <div class="flex gap-2">
+          <input
+            type="text" id="name" name="name"
+            value="{{ form.name if form else (item.name if item else '') }}"
+            placeholder="e.g. Organic Coffee Beans"
+            required
+          />
+          <button type="button" id="autocategorizeBtn" class="btn btn-ghost" style="white-space:nowrap; flex-shrink:0;">
+            🤖 Auto-detect
+          </button>
+        </div>
+        <div class="text-muted mt-1" style="font-size:0.78rem;">AI will suggest a category — or pick one below.</div>
+      </div>
+
+      <!-- Brand -->
+      <div class="form-group">
+        <label for="brand">Brand *</label>
+        <input
+          type="text" id="brand" name="brand"
+          value="{{ form.brand if form else (item.brand if item else '') }}"
+          placeholder="e.g. Nespresso, Oatly, 3M"
+          required
+        />
+      </div>
+
+      <!-- AI Shelf Life Prediction -->
+      <div style="margin-bottom:1.25rem;">
+        <button type="button" id="predictShelfBtn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--moss), var(--bark));">
+          🧠 Generate Smart Item Profile
+        </button>
+        <div id="shelfPrediction" style="display:none; margin-top:0.75rem; background:#f0f7f0; border:1px solid rgba(122,158,126,0.35); border-radius:10px; padding:1rem 1.1rem;">
+          <div style="font-size:0.78rem; font-weight:700; color:var(--moss); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.5rem;">🤖 AI Prediction</div>
+          <div id="shelfPredictionText" style="font-size:0.9rem; color:var(--forest); line-height:1.6;"></div>
+          <div id="shelfPredictionMeta" style="font-size:0.75rem; color:var(--muted); margin-top:0.4rem;"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Category -->
+        <div class="form-group">
+          <label for="category">Category *</label>
+          <select id="category" name="category">
+            {% set current_cat = form.category if form else (item.category if item else 'Other') %}
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if cat == current_cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+          <div id="categoryHint" class="text-muted mt-1" style="font-size:0.78rem; display:none;"></div>
+        </div>
+
+        <!-- Unit -->
+        <div class="form-group">
+          <label for="unit">Unit</label>
+          <select id="unit" name="unit">
+            {% set current_unit = form.unit if form else (item.unit if item else 'units') %}
+            {% for u in ['units', 'count', 'lbs', 'oz', 'kg', 'g', 'litres', 'ml', 'gallons', 'fl oz', 'boxes', 'cases', 'bags', 'bottles', 'cans', 'cartons', 'loaves', 'rolls', 'sheets', 'reams', 'pairs'] %}
+            <option value="{{ u }}" {% if u == current_unit %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+            <option value="{{ current_unit }}" {% if current_unit not in ['units','count','lbs','oz','kg','g','litres','ml','gallons','fl oz','boxes','cases','bags','bottles','cans','cartons','loaves','rolls','sheets','reams','pairs'] %}selected{% endif %}>{{ current_unit if current_unit not in ['units','count','lbs','oz','kg','g','litres','ml','gallons','fl oz','boxes','cases','bags','bottles','cans','cartons','loaves','rolls','sheets','reams','pairs'] else '' }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Quantity -->
+        <div class="form-group">
+          <label for="quantity">Quantity *</label>
+          <input
+            type="number" id="quantity" name="quantity" min="0"
+            value="{{ form.quantity if form else (item.quantity if item else '') }}"
+            placeholder="0"
+            required
+          />
+        </div>
+
+        <!-- Daily usage -->
+        <div class="form-group">
+          <label for="daily_usage">Daily Usage Rate</label>
+          <input
+            type="number" id="daily_usage" name="daily_usage" min="0" step="0.1"
+            value="{{ form.daily_usage if form else (item.daily_usage if item else '') }}"
+            placeholder="0.0 (leave blank if unknown)"
+          />
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Expiry date -->
+        <div class="form-group">
+          <label for="expiry_date">Expiry Date</label>
+          <input
+            type="date" id="expiry_date" name="expiry_date"
+            value="{{ form.expiry_date if form else (item.expiry_date if item else '') }}"
+          />
+        </div>
+
+        <!-- Sustainability score -->
+        <div class="form-group">
+          <label for="sustainability_score">Eco Score (1–10)</label>
+          <input
+            type="number" id="sustainability_score" name="sustainability_score" min="1" max="10"
+            value="{{ form.sustainability_score if form else (item.sustainability_score if item else 5) }}"
+            placeholder="5"
+          />
+          <div class="text-muted mt-1" style="font-size:0.78rem;">10 = most sustainable supplier/product</div>
+        </div>
+      </div>
+
+      <!-- Supplier -->
+      <div class="form-group">
+        <label for="supplier">Supplier</label>
+        <input
+          type="text" id="supplier" name="supplier"
+          value="{{ form.supplier if form else (item.supplier if item else '') }}"
+          placeholder="e.g. Local Farm Co-op, Green Office Supply"
+        />
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Storage instructions, reorder links, sustainability notes…">{{ form.notes if form else (item.notes if item else '') }}</textarea>
+      </div>
+
+      <!-- Sustainability live preview -->
+      <div id="ecoPreview" style="display:none; background:#f0f7f0; border:1px solid rgba(122,158,126,0.3); border-radius:8px; padding:0.85rem 1rem; margin-bottom:1.25rem;">
+        <div style="font-size:0.78rem; font-weight:600; color:var(--moss); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">🌿 Eco Score Preview</div>
+        <div id="ecoText" style="font-size:0.9rem; color:var(--forest);"></div>
+      </div>
+
+      <!-- Submit -->
+      <div class="flex gap-3" style="justify-content:flex-end;">
+        <a href="/" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          {{ '🌱 Add Item' if action == 'Create' else '💾 Save Changes' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Eco score live preview ──
+  const scoreInput = document.getElementById('sustainability_score');
+  const ecoPreview = document.getElementById('ecoPreview');
+  const ecoText = document.getElementById('ecoText');
+
+  const ecoMessages = {
+    1: "Very low — consider finding a more sustainable supplier.",
+    2: "Poor — significant room for improvement.",
+    3: "Below average — look for eco-friendly alternatives.",
+    4: "Fair — some sustainable practices in place.",
+    5: "Average — meets baseline sustainability standards.",
+    6: "Good — above-average sustainability practices.",
+    7: "Great — strong commitment to sustainability.",
+    8: "Excellent — highly responsible supplier.",
+    9: "Outstanding — near-exemplary sustainability.",
+    10: "Perfect — fully sustainable! 🌍",
+  };
+
+  function updateEcoPreview() {
+    const val = parseInt(scoreInput.value);
+    if (val >= 1 && val <= 10) {
+      ecoPreview.style.display = 'block';
+      ecoText.textContent = ecoMessages[val] || '';
+      const hue = Math.round(90 + (val - 1) * 5);
+      ecoPreview.style.background = `hsl(${hue}, 50%, 95%)`;
+    } else {
+      ecoPreview.style.display = 'none';
+    }
+  }
+  scoreInput.addEventListener('input', updateEcoPreview);
+  updateEcoPreview();
+
+  // ── AI Auto-categorize ──
+  const autoBtn = document.getElementById('autocategorizeBtn');
+  const categorySelect = document.getElementById('category');
+  const categoryHint = document.getElementById('categoryHint');
+  const nameInput = document.getElementById('name');
+  const notesInput = document.getElementById('notes');
+
+  autoBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) {
+      showToast('Please enter an item name first.');
+      return;
+    }
+    autoBtn.disabled = true;
+    autoBtn.innerHTML = '<span class="spinner"></span> Detecting…';
+    try {
+      const res = await fetch('/api/autocategorize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, notes: notesInput.value })
+      });
+      const data = await res.json();
+      if (data.category) {
+        categorySelect.value = data.category;
+        categoryHint.style.display = 'block';
+        categoryHint.textContent = `✨ AI suggested: ${data.category}`;
+        showToast(`Category set to: ${data.category}`);
+      }
+    } catch (err) {
+      showToast('Auto-categorization failed — please select manually.');
+    } finally {
+      autoBtn.disabled = false;
+      autoBtn.innerHTML = '🤖 Auto-detect';
+    }
+  });
+
+  // ── AI Smart Item Profile ──
+  const predictBtn = document.getElementById('predictShelfBtn');
+  const expiryInput = document.getElementById('expiry_date');
+  const unitInput = document.getElementById('unit');
+  const usageInput2 = document.getElementById('daily_usage');
+
+  predictBtn.addEventListener('click', async () => {
+    const name = nameInput.value.trim();
+    if (!name) { showToast('Please enter an item name first.'); return; }
+
+    predictBtn.disabled = true;
+    predictBtn.innerHTML = '<span class="spinner"></span> Predicting…';
+
+    try {
+      const res = await fetch('/api/predict-shelf-life', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+
+      const box = document.getElementById('shelfPrediction');
+      const text = document.getElementById('shelfPredictionText');
+      const meta = document.getElementById('shelfPredictionMeta');
+      box.style.display = 'block';
+
+      if (data.shelf_life_days) {
+        text.innerHTML = `
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.6rem;">
+            <div style="background:white; border-radius:7px; padding:7px 10px;">
+              <div style="font-size:0.68rem; color:var(--muted); font-weight:600; text-transform:uppercase;">📅 Shelf Life</div>
+              <div style="font-weight:600; color:var(--forest);">~${data.shelf_life_days} days</div>
+            </div>
+            <div style="background:white; border-radius:7px; padding:7px 10px;">
+              <div style="font-size:0.68rem; color:var(--muted); font-weight:600; text-transform:uppercase;">📊 Daily Usage</div>
+              <div style="font-weight:600; color:var(--forest);">${data.daily_usage_estimate} ${data.unit}/day</div>
+            </div>
+            <div style="background:white; border-radius:7px; padding:7px 10px;">
+              <div style="font-size:0.68rem; color:var(--muted); font-weight:600; text-transform:uppercase;">🛒 Reorder When</div>
+              <div style="font-weight:600; color:var(--amber);">${data.reorder_lead_days} days left</div>
+            </div>
+            <div style="background:white; border-radius:7px; padding:7px 10px;">
+              <div style="font-size:0.68rem; color:var(--muted); font-weight:600; text-transform:uppercase;">📦 Unit</div>
+              <div style="font-weight:600; color:var(--forest);">${data.unit}</div>
+            </div>
+          </div>
+          <div style="font-size:0.85rem; margin-bottom:4px;"><strong>❄️ Storage:</strong> ${data.storage_tip}</div>
+          <div style="font-size:0.85rem; margin-bottom:4px;"><strong>⚠️ Spoilage signs:</strong> ${data.spoilage_signs}</div>
+          <div style="font-size:0.85rem; margin-bottom:4px;"><strong>♻️ Waste tip:</strong> ${data.waste_reduction_tip}</div>
+          <div style="font-size:0.85rem;"><strong>🌿 Eco swap:</strong> ${data.sustainable_alternative}</div>
+        `;
+        if (data.expiry_date) expiryInput.value = data.expiry_date;
+        if (data.unit) unitInput.value = data.unit;
+        if (data.daily_usage_estimate) usageInput2.value = data.daily_usage_estimate;
+        if (data.category) {
+          const catSelect = document.getElementById('category');
+          if ([...catSelect.options].some(o => o.value === data.category)) {
+            catSelect.value = data.category;
+          }
+        }
+        if (data.eco_score) {
+          document.getElementById('sustainability_score').value = data.eco_score;
+          updateEcoPreview();
+        }
+        meta.textContent = (data.ai_powered ? '✨ Powered by Claude AI' : '⚙️ Rule-based estimate') + ` · Confidence: ${data.confidence}`;
+        showToast('✅ Smart profile generated and fields auto-filled!');
+      } else {
+        text.innerHTML = `
+          <div style="font-size:0.85rem; margin-bottom:4px;"><strong>⚠️ Spoilage signs:</strong> ${data.spoilage_signs}</div>
+          <div style="font-size:0.85rem; margin-bottom:4px;"><strong>♻️ Waste tip:</strong> ${data.waste_reduction_tip}</div>
+          <div style="font-size:0.85rem;"><strong>🌿 Eco swap:</strong> ${data.sustainable_alternative}</div>
+        `;
+        meta.textContent = '⚙️ No shelf life data — but sustainability tips provided';
+        showToast('ℹ️ No expiry data, but tips loaded!');
+      }
+    } catch (err) {
+      showToast('Prediction failed — please fill in manually.');
+    } finally {
+      predictBtn.disabled = false;
+      predictBtn.innerHTML = '🧠 Generate Smart Item Profile';
+    }
+  });
+
+  // ── Stockout estimate ──
+  const qtyInput = document.getElementById('quantity');
+  const usageInput = document.getElementById('daily_usage');
+
+  function updateStockoutHint() {
+    const qty = parseFloat(qtyInput.value);
+    const usage = parseFloat(usageInput.value);
+    if (qty > 0 && usage > 0) {
+      const days = Math.round(qty / usage);
+      showToast(`📅 At this usage rate, stock lasts ~${days} days.`);
+    }
+  }
+  usageInput.addEventListener('change', updateStockoutHint);
+  qtyInput.addEventListener('change', updateStockoutHint);
+</script>
+{% endblock %}

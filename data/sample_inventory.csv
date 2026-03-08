@@ -1,0 +1,16 @@
+name,category,quantity,unit,expiry_date,daily_usage,supplier,notes,added_at,sustainability_score
+"Organic Coffee Beans","Food & Beverage",2,kg,2026-03-11,0.5,"Local Fair-Trade Co-op","Store in cool dry place",2026-02-05T21:16:37,9
+"Recycled Printer Paper","Office Supplies",150,reams,,2.0,"EcoOffice Supplies Ltd","100% post-consumer recycled",2026-02-05T21:16:37,8
+"Hand Sanitizer (500ml)","Cleaning & Sanitation",8,bottles,2026-09-03,0.3,"GreenClean Inc","Alcohol-based 70%",2026-02-05T21:16:37,6
+"Soy Milk (1L)","Food & Beverage",6,cartons,2026-03-13,1.2,"Organic Valley Farm","Refrigerate after opening",2026-02-05T21:16:37,9
+"Bamboo Pens","Office Supplies",45,units,,0.8,"EcoOffice Supplies Ltd","Biodegradable barrel",2026-02-05T21:16:37,10
+"Ethanol Reagent (1L)","Chemicals",3,bottles,2026-03-09,0.2,"SciSupply Corp","Flammable — store away from heat",2026-02-05T21:16:37,4
+"AA Batteries","Electronics",20,units,,1.5,"Generic Brand Store","Consider switching to rechargeables",2026-02-05T21:16:37,2
+"Compostable Trash Bags","Cleaning & Sanitation",60,bags,,4.0,"BioPack Solutions","Certified compostable ASTM D6400",2026-02-05T21:16:37,10
+"Green Tea Bags","Food & Beverage",5,boxes,2026-12-02,0.6,"Himalaya Organic Tea","Fair-trade certified",2026-02-05T21:16:37,8
+"Lab Gloves (Nitrile)","Lab Equipment",3,boxes,2027-03-07,2.0,"MedSupply Direct","Powder-free size M",2026-02-05T21:16:37,5
+"Whiteboard Markers","Office Supplies",12,units,,0.4,"EcoOffice Supplies Ltd","Low-odor formula",2026-02-05T21:16:37,6
+"Oat Milk (1L)","Food & Beverage",3,cartons,2026-03-10,1.5,"Oatly Direct","Refrigerate after opening",2026-02-05T21:16:37,9
+"Bleach Concentrate","Cleaning & Sanitation",4,bottles,2026-03-25,0.1,"CleanPro Wholesale","Dilute 1:10 before use",2026-02-05T21:16:37,3
+"USB-C Cables","Electronics",7,units,,0.1,"TechDirect","Check for fraying monthly",2026-02-05T21:16:37,4
+"Aluminium Foil Roll","Food & Beverage",2,rolls,2030-03-06,0.3,"Restaurant Depot","Recyclable — rinse before recycling",2026-02-05T21:16:37,5

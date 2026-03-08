@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Scan Receipt{% endblock %}
+
+{% block content %}
+<div class="page" style="max-width:720px;">
+
+  <div class="flex items-center gap-3 mb-4" style="margin-bottom:1.75rem;">
+    <a href="/" class="btn btn-secondary btn-sm">← Back</a>
+    <div>
+      <h1 class="font-serif" style="font-size:1.75rem; color:var(--forest);">📸 Scan a Receipt</h1>
+      <p class="text-muted mt-1">Upload a photo of your grocery or supply receipt — Claude will read it and add all items automatically.</p>
+    </div>
+  </div>
+
+  <!-- Upload Area -->
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div id="dropZone" style="border:2px dashed rgba(122,158,126,0.4); border-radius:10px; padding:2.5rem; text-align:center; cursor:pointer; transition: all 0.2s;" onclick="document.getElementById('receiptFile').click()">
+      <div style="font-size:3rem; margin-bottom:0.75rem;">🧾</div>
+      <div style="font-size:1rem; font-weight:600; color:var(--forest); margin-bottom:0.4rem;">Click to upload or drag & drop</div>
+      <div class="text-muted" style="font-size:0.85rem;">JPG, PNG, or HEIC — photo of any receipt</div>
+      <input type="file" id="receiptFile" accept="image/*" style="display:none;" />
+    </div>
+
+    <!-- Preview -->
+    <div id="previewArea" style="display:none; margin-top:1rem; text-align:center;">
+      <img id="previewImg" style="max-height:300px; max-width:100%; border-radius:8px; box-shadow:var(--shadow);" />
+      <div style="margin-top:0.75rem;">
+        <button id="scanBtn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--moss), var(--bark));">
+          🤖 Scan with Claude AI
+        </button>
+        <button onclick="clearImage()" class="btn btn-secondary" style="margin-left:0.5rem;">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsArea" style="display:none;">
+    <div class="flex justify-between items-center" style="margin-bottom:1rem;">
+      <h2 class="font-serif" style="font-size:1.3rem; color:var(--forest);">
+        📦 Found <span id="itemCount">0</span> items
+      </h2>
+      <button id="addAllBtn" class="btn btn-primary">✅ Add All to Inventory</button>
+    </div>
+    <p class="text-muted mb-4" style="margin-bottom:1rem; font-size:0.85rem;">Review the items below — uncheck any you don't want to add.</p>
+    <div id="itemsList"></div>
+  </div>
+
+  <!-- Success -->
+  <div id="successArea" style="display:none;" class="card" style="text-align:center; padding:2rem;">
+    <div style="font-size:3rem; margin-bottom:0.75rem;">🎉</div>
+    <h3 class="font-serif" style="color:var(--forest); margin-bottom:0.5rem;">Items Added!</h3>
+    <p class="text-muted" id="successMsg"></p>
+    <a href="/" class="btn btn-primary" style="margin-top:1rem;">View Inventory →</a>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let scannedItems = [];
+
+  // ── Drag & Drop ──
+  const dropZone = document.getElementById('dropZone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.background = '#f0f7f0'; });
+  dropZone.addEventListener('dragleave', () => { dropZone.style.background = ''; });
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+
+  document.getElementById('receiptFile').addEventListener('change', e => {
+    if (e.target.files[0]) loadFile(e.target.files[0]);
+  });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewArea').style.display = 'block';
+      document.getElementById('dropZone').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function clearImage() {
+    document.getElementById('previewArea').style.display = 'none';
+    document.getElementById('dropZone').style.display = 'block';
+    document.getElementById('resultsArea').style.display = 'none';
+    document.getElementById('receiptFile').value = '';
+    scannedItems = [];
+  }
+
+  // ── Scan ──
+  document.getElementById('scanBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('scanBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Scanning receipt…';
+
+    const img = document.getElementById('previewImg');
+    const src = img.src;
+    const mediaType = src.startsWith('data:image/png') ? 'image/png' :
+                      src.startsWith('data:image/gif') ? 'image/gif' : 'image/jpeg';
+    const base64 = src.split(',')[1];
+
+    try {
+      const res = await fetch('/api/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: base64, media_type: mediaType })
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        showToast('❌ ' + data.error);
+        return;
+      }
+
+      scannedItems = data.items;
+      renderItems(scannedItems);
+      document.getElementById('itemCount').textContent = scannedItems.length;
+      document.getElementById('resultsArea').style.display = 'block';
+      showToast(`✅ Found ${scannedItems.length} items on receipt!`);
+    } catch (err) {
+      showToast('❌ Scan failed — please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🤖 Scan with Claude AI';
+    }
+  });
+
+  function renderItems(items) {
+    const list = document.getElementById('itemsList');
+    list.innerHTML = items.map((item, idx) => `
+      <div class="card" style="margin-bottom:0.75rem; padding:1rem 1.25rem;">
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="item_${idx}" checked style="width:18px; height:18px; accent-color:var(--moss); cursor:pointer; flex-shrink:0;" />
+          <div style="flex:1;">
+            <div class="flex justify-between items-center" style="margin-bottom:0.35rem;">
+              <strong style="color:var(--forest); font-size:0.95rem;">${item.name}${item.brand ? ` <span style="font-weight:400; color:var(--muted); font-size:0.82rem;">(${item.brand})</span>` : ''}</strong>
+              <span class="badge badge-green">${item.category}</span>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <span style="font-size:0.8rem; color:var(--muted);">📦 ${item.quantity} ${item.unit}</span>
+              ${item.expiry_date ? `<span style="font-size:0.8rem; color:var(--amber);">📅 Exp: ${item.expiry_date}</span>` : '<span style="font-size:0.8rem; color:var(--muted);">📅 No expiry</span>'}
+              <span style="font-size:0.8rem; color:var(--moss);">🌿 Eco: ${item.sustainability_score}/10</span>
+            </div>
+            ${item.storage_tip ? `<div style="font-size:0.8rem; color:var(--muted); margin-top:3px;">❄️ ${item.storage_tip}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Add All ──
+  document.getElementById('addAllBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('addAllBtn');
+    const selected = scannedItems.filter((_, idx) => document.getElementById(`item_${idx}`)?.checked);
+    if (!selected.length) { showToast('No items selected!'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Adding…';
+    try {
+      const res = await fetch('/api/confirm-receipt-items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: selected })
+      });
+      const data = await res.json();
+      document.getElementById('resultsArea').style.display = 'none';
+      document.getElementById('previewArea').style.display = 'none';
+      document.getElementById('successMsg').textContent = `${data.added} items added to your inventory with AI-predicted expiry dates.`;
+      document.getElementById('successArea').style.display = 'block';
+    } catch (err) {
+      showToast('❌ Failed to add items.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✅ Add All to Inventory';
+    }
+  });
+</script>
+{% endblock %}

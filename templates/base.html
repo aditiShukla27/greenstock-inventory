@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}GreenStock{% endblock %} — Sustainable Inventory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --moss:       #2d4a2d;
+      --forest:     #1a3320;
+      --sage:       #7a9e7e;
+      --mint:       #b8d4bb;
+      --cream:      #f5f0e8;
+      --parchment:  #ede5d0;
+      --bark:       #8b6f47;
+      --amber:      #d4831a;
+      --red:        #c0392b;
+      --text:       #2c2c2c;
+      --muted:      #6b6b5a;
+      --card-bg:    rgba(255,255,255,0.72);
+      --radius:     12px;
+      --shadow:     0 2px 16px rgba(45,74,45,0.10);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background-color: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse at 10% 20%, rgba(122,158,126,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 90% 80%, rgba(184,212,187,0.15) 0%, transparent 55%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232d4a2d' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--forest);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--mint);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+      letter-spacing: 0.01em;
+    }
+    .nav-brand .leaf { font-size: 1.5rem; }
+    .nav-links { display: flex; gap: 1rem; align-items: center; }
+    .nav-links a {
+      color: var(--sage);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { background: rgba(122,158,126,0.2); color: var(--mint); }
+    .btn-nav {
+      background: var(--sage);
+      color: var(--forest) !important;
+      font-weight: 600 !important;
+    }
+    .btn-nav:hover { background: var(--mint) !important; }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(122,158,126,0.25);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--moss); color: white; }
+    .btn-primary:hover { background: var(--forest); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,74,45,0.3); }
+    .btn-secondary { background: var(--parchment); color: var(--moss); border: 1px solid var(--sage); }
+    .btn-secondary:hover { background: var(--mint); }
+    .btn-danger { background: #fdf0ef; color: var(--red); border: 1px solid #e8b4b0; }
+    .btn-danger:hover { background: #fce0de; }
+    .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+    .btn-ghost { background: transparent; color: var(--sage); border: 1px solid var(--sage); }
+    .btn-ghost:hover { background: var(--sage); color: white; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .badge-green  { background: #d4edda; color: #1a5928; }
+    .badge-yellow { background: #fff3cd; color: #856404; }
+    .badge-red    { background: #f8d7da; color: #721c24; }
+    .badge-blue   { background: #d1ecf1; color: #0c5460; }
+    .badge-gray   { background: #e9ecef; color: #495057; }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid rgba(122,158,126,0.3);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      background: rgba(255,255,255,0.8);
+      color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--sage);
+      box-shadow: 0 0 0 3px rgba(122,158,126,0.15);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .error-msg { color: var(--red); font-size: 0.82rem; margin-top: 4px; }
+    .alert-errors {
+      background: #fdf0ef;
+      border: 1px solid #e8b4b0;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .alert-errors ul { padding-left: 1.2rem; margin-top: 4px; }
+    .alert-errors li { font-size: 0.875rem; color: var(--red); margin: 3px 0; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--forest);
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.35s ease;
+      pointer-events: none;
+      z-index: 999;
+      max-width: 320px;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── LOADING SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(26,51,32,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--cream);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 520px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalIn 0.25s ease;
+    }
+    @keyframes modalIn { from { opacity:0; transform:translateY(20px) scale(0.97); } to { opacity:1; transform:none; } }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 1rem; color: var(--forest); }
+
+    /* ── PAGE FADE-IN ── */
+    .page { animation: fadeUp 0.4s ease both; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+    /* ── UTILITIES ── */
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 0.5rem; }
+    .gap-3 { gap: 0.75rem; }
+    .gap-4 { gap: 1rem; }
+    .mt-1 { margin-top: 0.25rem; }
+    .mt-2 { margin-top: 0.5rem; }
+    .mt-3 { margin-top: 0.75rem; }
+    .mt-4 { margin-top: 1rem; }
+    .mb-1 { margin-bottom: 0.25rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .text-muted { color: var(--muted); font-size: 0.85rem; }
+    .text-sm { font-size: 0.875rem; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    .w-full { width: 100%; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    @media (max-width: 640px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      nav { padding: 0 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/" class="nav-brand"><span class="leaf">🌿</span> GreenStock</a>
+    <div class="nav-links">
+      <a href="/">Dashboard</a>
+      <a href="/item/new" class="btn-nav">+ Add Item</a>
+    </div>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <div id="toast"></div>
+
+  <script>
+    function showToast(msg, duration=3000) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), duration);
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

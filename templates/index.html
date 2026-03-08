@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- ── HERO ── -->
+  <div style="margin-bottom:2rem;">
+    <h1 class="font-serif" style="font-size:2rem; color:var(--forest); line-height:1.2;">
+      Inventory Dashboard
+    </h1>
+    <p class="text-muted mt-1">Track assets, reduce waste, and make sustainable choices.</p>
+  </div>
+
+  <!-- ── STATS ── -->
+  <div class="grid-3 mb-4" style="grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom:1.75rem;">
+    {% set stat_cards = [
+      ("📦", stats.total, "Total Items", "var(--moss)", "#f0f7f0"),
+      ("⚠️", stats.expiring_soon, "Expiring ≤7d", "var(--amber)", "#fff8ee"),
+      ("🔴", stats.low_stock, "Low Stock ≤3d", "#c0392b", "#fdf0ef"),
+      ("💀", stats.expired, "Expired", "#7b0000", "#f9e8e8"),
+      ("🌿", stats.avg_sustainability, "Avg. Eco Score", "var(--sage)", "#f0f7f0"),
+    ] %}
+    {% for icon, val, label, color, bg in stat_cards %}
+    <div class="card" style="background:{{ bg }}; border-color: rgba(0,0,0,0.06); padding:1.1rem 1rem; text-align:center;">
+      <div style="font-size:1.5rem; margin-bottom:4px;">{{ icon }}</div>
+      <div style="font-family:'Playfair Display',serif; font-size:1.6rem; font-weight:700; color:{{ color }};">{{ val }}</div>
+      <div style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; font-weight:600;">{{ label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+
+  <!-- ── RECIPE BUTTON ── -->
+  <div style="margin-bottom:1.5rem;">
+    <button id="recipeBtn" class="btn btn-primary" style="background: linear-gradient(135deg, var(--moss), var(--bark)); font-size:0.95rem; padding: 10px 22px;">
+      🍳 Get Recipe Ideas from Expiring Food
+    </button>
+    <span class="text-muted" style="margin-left:0.75rem; font-size:0.82rem;">AI suggestions using your expiring Food &amp; Beverage items</span>
+  </div>
+
+  <!-- ── SEARCH & FILTER ── -->
+  <div class="card mb-4" style="margin-bottom:1.5rem; padding:1.1rem 1.25rem;">
+    <form method="GET" action="/" class="flex items-center gap-3" style="flex-wrap:wrap;">
+      <input
+        type="text" name="q" placeholder="🔍  Search items…"
+        value="{{ search }}"
+        style="flex:1; min-width:180px; padding:9px 14px;"
+      />
+      <select name="category" style="flex:0 0 auto; min-width:160px; padding:9px 14px;">
+        <option value="">All Categories</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}" {% if cat == category_filter %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+      <select name="status" style="flex:0 0 auto; min-width:150px; padding:9px 14px;">
+        <option value="">All Statuses</option>
+        <option value="expiring_soon" {% if status_filter=='expiring_soon' %}selected{% endif %}>Expiring Soon</option>
+        <option value="low_stock" {% if status_filter=='low_stock' %}selected{% endif %}>Low Stock</option>
+        <option value="expired" {% if status_filter=='expired' %}selected{% endif %}>Expired</option>
+      </select>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      {% if search or category_filter or status_filter %}
+      <a href="/" class="btn btn-secondary">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- ── ITEMS COUNT ── -->
+  <div class="flex justify-between items-center mb-2" style="margin-bottom:0.75rem;">
+    <p class="text-muted">Showing <strong>{{ items|length }}</strong> item{{ 's' if items|length != 1 }}</p>
+    <div class="flex gap-2">
+      <a href="/scan-receipt" class="btn btn-secondary btn-sm">📸 Scan Receipt</a>
+      <a href="/item/new" class="btn btn-primary btn-sm">+ Add Item</a>
+    </div>
+  </div>
+
+  <!-- ── ITEM GRID ── -->
+  {% if items %}
+  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1rem;">
+    {% for item in items %}
+    {% set days_exp = item.days_until_expiry %}
+    {% set days_out = item.days_until_stockout %}
+
+    {% if days_exp is not none and days_exp < 0 %}
+      {% set status_color = "#721c24" %}
+      {% set status_bg = "#f8d7da" %}
+      {% set status_label = "EXPIRED" %}
+    {% elif (days_exp is not none and days_exp <= 7) or (days_out is not none and days_out <= 3) %}
+      {% set status_color = "#856404" %}
+      {% set status_bg = "#fff3cd" %}
+      {% set status_label = "URGENT" %}
+    {% elif (days_exp is not none and days_exp <= 30) or (days_out is not none and days_out <= 10) %}
+      {% set status_color = "var(--amber)" %}
+      {% set status_bg = "#fff8ee" %}
+      {% set status_label = "WATCH" %}
+    {% else %}
+      {% set status_color = "var(--moss)" %}
+      {% set status_bg = "#f0f7f0" %}
+      {% set status_label = "OK" %}
+    {% endif %}
+
+    <div class="card item-card" style="position:relative; transition: transform 0.18s, box-shadow 0.18s;" data-id="{{ item.id }}">
+      <!-- Status ribbon -->
+      <div style="position:absolute; top:0; right:0; background:{{ status_bg }}; color:{{ status_color }}; font-size:0.65rem; font-weight:700; letter-spacing:0.06em; padding:3px 10px; border-radius:0 12px 0 8px;">
+        {{ status_label }}
+      </div>
+
+      <!-- Header -->
+      <div class="flex justify-between items-center" style="margin-bottom:0.6rem; padding-right:3rem;">
+        <h3 style="font-family:'Playfair Display',serif; font-size:1.05rem; color:var(--forest);">{{ item.name }}</h3>
+      </div>
+
+      <div class="flex gap-2 mb-2" style="margin-bottom:0.75rem; flex-wrap:wrap;">
+        <span class="badge badge-green">{{ item.category }}</span>
+        <span class="badge badge-blue">🌿 {{ item.sustainability_score }}/10</span>
+      </div>
+
+      <!-- Key stats -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.85rem;">
+        <div style="background:var(--parchment); border-radius:8px; padding:8px 10px;">
+          <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Qty</div>
+          <div style="font-size:1rem; font-weight:600; color:var(--text);">{{ item.quantity }} {{ item.unit }}</div>
+        </div>
+        <div style="background:var(--parchment); border-radius:8px; padding:8px 10px;">
+          <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Runs Out</div>
+          <div style="font-size:1rem; font-weight:600; color:{{ status_color }};">
+            {% if days_out is not none %}~{{ days_out }}d{% else %}—{% endif %}
+          </div>
+        </div>
+        {% if item.expiry_date %}
+        <div style="background:var(--parchment); border-radius:8px; padding:8px 10px;">
+          <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Expires</div>
+          <div style="font-size:0.85rem; font-weight:600; color:{{ status_color }};">
+            {% if days_exp is not none %}
+              {% if days_exp < 0 %}{{ days_exp|abs }}d ago{% else %}{{ days_exp }}d{% endif %}
+            {% else %}—{% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if item.supplier %}
+        <div style="background:var(--parchment); border-radius:8px; padding:8px 10px;">
+          <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase; font-weight:600;">Supplier</div>
+          <div style="font-size:0.8rem; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.supplier }}</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-2" style="flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm insight-btn" data-id="{{ item.id }}" style="flex:1;">
+          🤖 Insights
+        </button>
+        <a href="/item/{{ item.id }}/edit" class="btn btn-secondary btn-sm" style="flex:1; text-align:center;">✏️ Edit</a>
+        <button class="btn btn-secondary btn-sm sub-btn" data-id="{{ item.id }}" data-name="{{ item.name }}" style="flex:1;" title="Out of stock? Find substitutes">
+          🔄 Sub
+        </button>
+        <form method="POST" action="/item/{{ item.id }}/delete" style="flex:0 0 auto;" onsubmit="return confirm('Delete {{ item.name }}?')">
+          <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="card" style="text-align:center; padding:3rem 2rem;">
+    <div style="font-size:3rem; margin-bottom:1rem;">🌱</div>
+    <h3 class="font-serif" style="color:var(--forest); margin-bottom:0.5rem;">No items found</h3>
+    <p class="text-muted mb-4" style="margin-bottom:1.25rem;">
+      {% if search or category_filter or status_filter %}
+        Try adjusting your filters.
+      {% else %}
+        Start by adding your first inventory item.
+      {% endif %}
+    </p>
+    <a href="/item/new" class="btn btn-primary">+ Add First Item</a>
+  </div>
+  {% endif %}
+
+</div>
+
+
+<!-- ── SUBSTITUTION MODAL ── -->
+<div class="modal-overlay" id="subModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="flex justify-between items-center" style="margin-bottom:1rem;">
+      <h2 class="modal-title" style="margin-bottom:0;">🔄 Substitution Ideas</h2>
+      <button onclick="closeSubModal()" class="btn btn-secondary btn-sm">✕ Close</button>
+    </div>
+    <div id="subItemName" style="background:var(--parchment); border-radius:8px; padding:0.6rem 1rem; margin-bottom:1rem; font-size:0.85rem; color:var(--muted);"></div>
+    <div id="subContent" style="line-height:1.8; color:var(--text); white-space:pre-wrap; font-size:0.92rem;">
+      <div class="flex gap-2 items-center" style="color:var(--muted);">
+        <span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span>
+        Finding substitutes in your inventory…
+      </div>
+    </div>
+    <div id="subMeta" class="text-muted" style="margin-top:1rem; font-size:0.78rem; border-top:1px solid rgba(122,158,126,0.2); padding-top:0.75rem;"></div>
+    <div style="margin-top:1rem;">
+      <button id="markOutOfStockBtn" class="btn btn-danger btn-sm" style="width:100%;">Mark as Out of Stock & Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── RECIPE MODAL ── -->
+<div class="modal-overlay" id="recipeModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="flex justify-between items-center" style="margin-bottom:1rem;">
+      <h2 class="modal-title" style="margin-bottom:0;">🍳 Recipe Ideas</h2>
+      <button onclick="closeRecipeModal()" class="btn btn-secondary btn-sm">✕ Close</button>
+    </div>
+    <div id="recipeIngredients" style="background:var(--parchment); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; font-size:0.82rem; color:var(--muted); display:none;">
+      <strong style="color:var(--moss);">🥬 Using these expiring ingredients:</strong>
+      <div id="ingredientList" style="margin-top:4px;"></div>
+    </div>
+    <div id="recipeContent" style="line-height:1.8; color:var(--text); white-space:pre-wrap; font-size:0.92rem;">
+      <div class="flex gap-2 items-center" style="color:var(--muted);">
+        <span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span>
+        Finding recipes…
+      </div>
+    </div>
+    <div id="recipeMeta" class="text-muted" style="margin-top:1rem; font-size:0.78rem; border-top:1px solid rgba(122,158,126,0.2); padding-top:0.75rem;"></div>
+  </div>
+</div>
+
+<!-- ── INSIGHT MODAL ── -->
+<div class="modal-overlay" id="insightModal">
+  <div class="modal">
+    <div class="flex justify-between items-center mb-2" style="margin-bottom:1rem;">
+      <h2 class="modal-title" style="margin-bottom:0;">🤖 AI Insights</h2>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">✕ Close</button>
+    </div>
+    <div id="insightContent" style="line-height:1.7; color:var(--text);">
+      <div class="flex gap-2 items-center" style="color:var(--muted);">
+        <span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span>
+        Generating insights…
+      </div>
+    </div>
+    <div id="insightMeta" class="text-muted mt-3" style="margin-top:1rem; font-size:0.78rem; border-top:1px solid rgba(122,158,126,0.2); padding-top:0.75rem;"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+
+  // ── Recipe Modal ──
+  function closeRecipeModal() {
+    document.getElementById('recipeModal').classList.remove('open');
+  }
+  document.getElementById('recipeModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRecipeModal();
+  });
+
+  document.getElementById('recipeBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('recipeBtn');
+    document.getElementById('recipeContent').innerHTML = `
+      <div class="flex gap-2 items-center" style="color:var(--muted);">
+        <span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span>
+        Finding recipes for your expiring ingredients…
+      </div>`;
+    document.getElementById('recipeIngredients').style.display = 'none';
+    document.getElementById('recipeMeta').textContent = '';
+    document.getElementById('recipeModal').classList.add('open');
+
+    try {
+      const res = await fetch('/api/recipes');
+      const data = await res.json();
+
+      if (data.recipes) {
+        document.getElementById('recipeContent').textContent = data.recipes;
+        if (data.ingredients && data.ingredients.length > 0) {
+          document.getElementById('recipeIngredients').style.display = 'block';
+          document.getElementById('ingredientList').textContent = data.ingredients.join(' • ');
+        }
+        document.getElementById('recipeMeta').textContent =
+          data.ai_powered ? '✨ Powered by Claude AI' : '⚙️ Rule-based fallback (no API key set)';
+      } else {
+        document.getElementById('recipeContent').textContent = data.message || 'No food items found.';
+      }
+    } catch (err) {
+      document.getElementById('recipeContent').textContent = 'Failed to load recipes. Please try again.';
+    }
+  });
+
+
+  // ── Substitution Modal ──
+  let currentSubId = null;
+  function closeSubModal() { document.getElementById('subModal').classList.remove('open'); }
+  document.getElementById('subModal').addEventListener('click', function(e) { if(e.target===this) closeSubModal(); });
+
+  document.querySelectorAll('.sub-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      currentSubId = btn.dataset.id;
+      const name = btn.dataset.name;
+      document.getElementById('subItemName').textContent = `Out of stock: ${name}`;
+      document.getElementById('subContent').innerHTML = `<div class="flex gap-2 items-center" style="color:var(--muted);"><span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span> Finding substitutes…</div>`;
+      document.getElementById('subMeta').textContent = '';
+      document.getElementById('subModal').classList.add('open');
+      try {
+        const res = await fetch(`/api/substitutions/${currentSubId}`);
+        const data = await res.json();
+        document.getElementById('subContent').textContent = data.suggestions;
+        document.getElementById('subMeta').textContent = data.ai_powered ? '✨ Powered by Claude AI' : '⚙️ Rule-based fallback';
+      } catch(err) {
+        document.getElementById('subContent').textContent = 'Failed to load substitutions.';
+      }
+    });
+  });
+
+  document.getElementById('markOutOfStockBtn').addEventListener('click', async () => {
+    if (!currentSubId) return;
+    await fetch(`/item/${currentSubId}/mark-out-of-stock`, { method: 'POST' });
+    showToast('✅ Marked as out of stock');
+    closeSubModal();
+    setTimeout(() => location.reload(), 800);
+  });
+
+  // ── Card hover ──
+  document.querySelectorAll('.item-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.style.transform = 'translateY(-3px)';
+      card.style.boxShadow = '0 8px 24px rgba(45,74,45,0.15)';
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    });
+  });
+
+  // ── Insight Modal ──
+  function openModal() {
+    document.getElementById('insightModal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('insightModal').classList.remove('open');
+  }
+  document.getElementById('insightModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  document.querySelectorAll('.insight-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      document.getElementById('insightContent').innerHTML = `
+        <div class="flex gap-2 items-center" style="color:var(--muted);">
+          <span class="spinner" style="border-color:rgba(45,74,45,0.3); border-top-color:var(--moss);"></span>
+          Generating insights…
+        </div>`;
+      document.getElementById('insightMeta').textContent = '';
+      openModal();
+      try {
+        const res = await fetch(`/item/${id}/insights`);
+        const data = await res.json();
+        
+        if (data.structured) {
+          document.getElementById('insightContent').innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div style="background:#fff8ee; border-left:3px solid var(--amber); border-radius:0 8px 8px 0; padding:0.7rem 1rem;">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--amber); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">⚡ Urgency</div>
+                <div style="font-size:0.9rem; color:var(--text);">${data.urgency}</div>
+              </div>
+              <div style="background:#f0f7f0; border-left:3px solid var(--sage); border-radius:0 8px 8px 0; padding:0.7rem 1rem;">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--moss); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">❄️ Storage</div>
+                <div style="font-size:0.9rem; color:var(--text);">${data.storage}</div>
+              </div>
+              <div style="background:#fdf0ef; border-left:3px solid #e07060; border-radius:0 8px 8px 0; padding:0.7rem 1rem;">
+                <div style="font-size:0.7rem; font-weight:700; color:#c0392b; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">⚠️ Spoilage Signs</div>
+                <div style="font-size:0.9rem; color:var(--text);">${data.spoilage_signs}</div>
+              </div>
+              <div style="background:#f5f0e8; border-left:3px solid var(--bark); border-radius:0 8px 8px 0; padding:0.7rem 1rem;">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--bark); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">♻️ Waste Reduction</div>
+                <div style="font-size:0.9rem; color:var(--text);">${data.waste_tip}</div>
+              </div>
+              <div style="background:#f0f7f0; border-left:3px solid var(--moss); border-radius:0 8px 8px 0; padding:0.7rem 1rem;">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--forest); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px;">🌿 Eco Swap</div>
+                <div style="font-size:0.9rem; color:var(--text);">${data.eco_swap}</div>
+              </div>
+            </div>`;
+        } else {
+          document.getElementById('insightContent').textContent = data.insight || 'No insight available.';
+        }
+        document.getElementById('insightMeta').textContent =
+          data.ai_powered ? '✨ Powered by Claude AI' : '⚙️ Rule-based fallback (no API key set)';
+      } catch (err) {
+        document.getElementById('insightContent').textContent = 'Failed to load insights. Please try again.';
+      }
+    });
+  });
+</script>
+{% endblock %}
