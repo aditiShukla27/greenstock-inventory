@@ -67,6 +67,19 @@ python -m unittest tests.test_app -v
 | **Rule-Based Fallback** | Every AI feature degrades gracefully when API is unavailable |
 
 ---
+## FallBacks
+🧠 Smart Item Profile
+If Claude is unavailable, the app uses a keyword dictionary with 16 common items pre-loaded. For example, typing "milk" automatically returns 7 days shelf life, litres as the unit, and Food & Beverage as the category. Any item not in the dictionary returns a sensible default profile.
+🤖 Structured Insights
+If Claude is unavailable, the app runs threshold-based rules against the item's data. It checks days until expiry (flags anything under 7 days as urgent), days until stockout based on daily usage rate, and sustainability score (flags anything under 3 as low eco). Results are returned in the same format as the AI response.
+🏷️ Auto-Categorize
+If Claude is unavailable, the app matches the item name against a keyword dictionary covering all 9 categories. For example "coffee", "cheese", and "milk" map to Food & Beverage, "paper" and "pen" map to Office Supplies, "bleach" and "soap" map to Cleaning & Sanitation, and so on. Anything unrecognized defaults to "Other".
+🍳 Recipe Ideas
+If Claude is unavailable, the app returns 3 hardcoded template recipes — a stir fry, a smoothie, and a soup — populated with whatever Food & Beverage items are currently in stock.
+🔄 Substitution Bot
+If Claude is unavailable, the app finds other items in the same category as the out-of-stock item and suggests the first match as a substitute. For example if you're out of milk it finds other Food & Beverage items in your inventory.
+📸 Receipt Scanner
+If Claude is unavailable, the app returns a clear error message letting the user know AI is required for receipt scanning, rather than crashing. This is the one feature with no rule-based fallback since reading an image requires vision AI.
 
 ## AI Disclosure
 
